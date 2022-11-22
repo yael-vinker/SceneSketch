@@ -12,8 +12,8 @@ import time
 # You can use this to create both the objects and background. 
 # The default parameters are set for the background case.
 # Example of a running command:
-# CUDA_VISIBLE_DEVICES=1 python scripts/generate_fidelity_levels.py --im_name "man_flowers" --layer_opt 8 --object_or_background "object" --resize_obj 1
-# CUDA_VISIBLE_DEVICES=2 python scripts/generate_fidelity_levels.py --im_name "man_flowers" --layer_opt 8 --object_or_background "background"
+# CUDA_VISIBLE_DEVICES=1 python scripts/generate_fidelity_levels.py --im_name "man_flowers" --layer_opt 7 --object_or_background "object" --resize_obj 1
+# CUDA_VISIBLE_DEVICES=3 python scripts/generate_fidelity_levels.py --im_name "man_flowers" --layer_opt 7 --object_or_background "background"
 # CUDA_VISIBLE_DEVICES=2 python scripts/generate_fidelity_levels.py --im_name "man_flowers" --layer_opt 8 --object_or_background "background"
 
 
@@ -26,7 +26,7 @@ args = parser.parse_args()
 
 
 path_to_input_images = "./target_images" # where the input images are located
-output_pref = "./results_sketches"
+output_pref = f"./results_sketches/{args.im_name}/runs"
 
 # if you run on objects, this need to be changed:
 im_filename = f"{args.im_name}_mask.png"

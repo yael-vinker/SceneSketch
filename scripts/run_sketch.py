@@ -94,8 +94,6 @@ if not os.path.isfile(f"{abs_path}/U2Net_/saved_models/u2net.pth"):
     sp.run(["gdown", "https://drive.google.com/uc?id=1ao1ovG1Qtx4b7EoskHXmi2E9rp5CHLcZ",
         "-O", "U2Net_/saved_models/"])
 
-output_all = "/home/vinker/dev/"
-
 output_dir = f"{args.output_pref}/{args.test_name}/"
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
@@ -235,5 +233,11 @@ if __name__ == "__main__":
                 f"{output_dir}/{winning_trial}_best.svg")
         copyfile(f"{output_dir}/{winning_trial}/points_mlp.pt",
                 f"{output_dir}/points_mlp.pt")
-        
+
+        copyfile(f"{output_dir}/{winning_trial}/mask.png",
+                f"{output_dir}/mask.png")
+        if os.path.exists(f"{output_dir}/{winning_trial}/resize_params.npy"):
+            copyfile(f"{output_dir}/{winning_trial}/resize_params.npy",
+                    f"{output_dir}/resize_params.npy")
+            
 

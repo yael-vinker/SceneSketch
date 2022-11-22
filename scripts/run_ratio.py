@@ -13,7 +13,8 @@ import scripts_utils
 # The script recieves the name of the desired image, and the layer of interest.
 # The set of ratios are automatically calculated as part of this script.
 # Example of a running command:
-# CUDA_VISIBLE_DEVICES=3 python scripts/run_ratio.py --im_name "man_flowers" --layer_opt 11 --object_or_background "background" --min_div 0.9
+# CUDA_VISIBLE_DEVICES=1 python scripts/run_ratio.py --im_name "man_flowers" --layer_opt 11 --object_or_background "background" --min_div 0.9
+# CUDA_VISIBLE_DEVICES=6 python scripts/run_ratio.py --im_name "man_flowers" --layer_opt 11 --object_or_background "object" --min_div 0.9 --resize 1
 # ====================================================
 
 parser = argparse.ArgumentParser()
@@ -29,8 +30,8 @@ args = parser.parse_args()
 # ====== default params =======
 # =============================
 path_to_files = "./target_images"  # where the input images are located
-output_pref = "./results_sketches" # path to output the results
-path_res_pref = "./results_sketches" # path to take semantic trained models from
+output_pref = f"./results_sketches/{args.im_name}/runs" # path to output the results
+path_res_pref = f"./results_sketches/{args.im_name}/runs" # path to take semantic trained models from
 filename = f"{args.im_name}_mask.png" if args.object_or_background == "background" else f"{args.im_name}.jpg"
 file_ = f"{path_to_files}/{filename}"
 
@@ -77,8 +78,7 @@ print(ratios)
 
 
 # train for each ratio
-for j, ratio in enumerate(ratios[2:3]):
-    i = j + 2
+for i, ratio in enumerate(ratios):
     start = time.time()
     test_name_pref = f"l{args.layer_opt}_{os.path.splitext(os.path.basename(file_))[0]}_{args.min_div}"
     test_name = f"ratio{ratio}_{test_name_pref}"

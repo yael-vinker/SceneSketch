@@ -370,6 +370,7 @@ def get_mask_u2net(args, pil_im):
     im_np = np.array(pil_im)
     im_np = im_np / im_np.max()
 
+    params = {}
     if args.resize_obj:
         mask_np = mask[:,:,0].astype(int)
         target_np = im_np
@@ -397,11 +398,17 @@ def get_mask_u2net(args, pil_im):
             target_np = target_np / target_np.max()
             im_np = cut_and_resize(target_np, x0, x1, y0, y1, new_height, new_width)
 
+            params["original_center_y"] = (y0 + (y1 - y0) / 2) / h
+            params["original_center_x"] = (x0 + (x1 - x0) / 2) / w
+            params["scale_w"] = new_width / im_width
+            params["scale_h"] = new_height / im_height
+
     im_np = mask * im_np
     im_np[mask == 0] = 1
     im_final = (im_np / im_np.max() * 255).astype(np.uint8)
     im_final = Image.fromarray(im_final)
-    
+
+    np.save(f"{args.output_dir}/resize_params.npy", params)
     return im_final, mask
 
 

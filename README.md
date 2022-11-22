@@ -9,7 +9,7 @@ This is the official implementation of <title>, a method for converting a scene 
 <br>
 <br>
 
-![](repo_images/teaser.png?raw=true)
+![](repo_images/teaser_4.png?raw=true)
 At a high level, we define a sketch as a set of Bézier curves and train an MLP network to ... bla <br>
 We combine the final matrices into one ..
 <br>

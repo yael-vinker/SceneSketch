@@ -6,10 +6,9 @@
 <br>
 This is the official implementation of <title>, a method for converting a scene image into a sketch with different types of abstractions by disentangling abstraction into two axes of control: fidelity and simplicity. <br>
 
-<br>
-<br>
 
-![](repo_images/teaser_4.png?raw=true)
+<img src="repo_images/teaser_4.png" width="800">
+
 At a high level, we define a sketch as a set of Bézier curves and train an MLP network to ... bla <br>
 We combine the final matrices into one ..
 <br>

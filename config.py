@@ -59,7 +59,8 @@ def parse_arguments():
     parser.add_argument("--batch_size", type=int, default=1,
                         help="for optimization it's only one image")
     parser.add_argument("--save_interval", type=int, default=10)
-    parser.add_argument("--eval_interval", type=int, default=10)
+    parser.add_argument("--eval_interval", type=int, default=20)
+    parser.add_argument("--min_eval_iter", type=int, default=100)
     parser.add_argument("--image_scale", type=int, default=224)
     parser.add_argument("--loss_mask", type=str, default="none", 
                         help="mask the object during training, can be none|back|for, if you want to mask out the background choose back")

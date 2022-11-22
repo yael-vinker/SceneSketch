@@ -11,6 +11,7 @@ from scipy.ndimage.filters import gaussian_filter
 from skimage.color import rgb2gray
 from skimage.filters import threshold_otsu
 from torchvision import transforms
+import time
 
 
 class Painter(torch.nn.Module):
@@ -423,18 +424,23 @@ class Painter(torch.nn.Module):
 
 
     def save_svg(self, output_dir, name):
-        stroke_color = torch.tensor([0.0, 0.0, 0.0, 1.0])
-        new_shapes, new_shape_groups = [], []
-        for path in self.shapes:
-            is_in_canvas_ = self.is_in_canvas(self.canvas_width, self.canvas_height, path)
-            w = path.stroke_width / 1.5
-            if w > 0.7 and is_in_canvas_:
-                new_shapes.append(path)
-                path_group = pydiffvg.ShapeGroup(shape_ids = torch.tensor([len(new_shapes) - 1]),
-                                            fill_color = None,
-                                            stroke_color = stroke_color)
-                new_shape_groups.append(path_group)
-        pydiffvg.save_svg('{}/{}.svg'.format(output_dir, name), self.canvas_width, self.canvas_height, new_shapes, new_shape_groups)
+        if not self.width_optim:
+            pydiffvg.save_svg('{}/{}.svg'.format(output_dir, name), self.canvas_width, self.canvas_height, self.shapes, self.shape_groups)
+        else:
+            stroke_color = torch.tensor([0.0, 0.0, 0.0, 1.0])
+            new_shapes, new_shape_groups = [], []
+            for path in self.shapes:
+                # is_in_canvas_ = self.is_in_canvas(self.canvas_width, self.canvas_height, path)
+                is_in_canvas_ = True
+                w = path.stroke_width / 1.5
+                if w > 0.7 and is_in_canvas_:
+                    new_shapes.append(path)
+                    path_group = pydiffvg.ShapeGroup(shape_ids = torch.tensor([len(new_shapes) - 1]),
+                                                fill_color = None,
+                                                stroke_color = stroke_color)
+                    new_shape_groups.append(path_group)
+            pydiffvg.save_svg('{}/{}.svg'.format(output_dir, name), self.canvas_width, self.canvas_height, new_shapes, new_shape_groups)
+        
 
 
     def dino_attn(self):

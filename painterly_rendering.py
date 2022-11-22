@@ -79,7 +79,7 @@ def main(args):
     loss_func = Loss(args, mask)
     utils.log_input(args.use_wandb, 0, inputs, args.output_dir)
     renderer = load_renderer(args, inputs, mask)
-
+    
     optimizer = PainterOptimizer(args, renderer)
     counter = 0
     configs_to_save = {"loss_eval": []}
@@ -100,10 +100,6 @@ def main(args):
     else:
         epoch_range = tqdm(range(args.num_iter))
 
-    # if args.use_wandb:
-        # wandb.watch(renderer.get_mlp(), log_freq=1)
-        # if args.width_optim:
-        #     wandb.watch(renderer.get_width_mlp(), log_freq=1)
     if args.switch_loss:
         # start with width optim and than switch every switch_loss iterations
         renderer.turn_off_points_optim()
@@ -117,37 +113,21 @@ def main(args):
     for epoch in epoch_range:
         if not args.display:
             epoch_range.refresh()
-        renderer.set_random_noise(epoch)
-        if args.lr_scheduler:
-            optimizer.update_lr(counter)
-        
-        # with autograd.detect_anomaly():
         start = time.time()
         optimizer.zero_grad_()
         sketches = renderer.get_image().to(args.device)
         losses_dict_weighted, losses_dict_norm, losses_dict_original = loss_func(sketches, inputs.detach(), counter, renderer.get_widths(), renderer, optimizer, mode="train", width_opt=renderer.width_optim)
-        # print(losses_dict_weighted)
         loss = sum(list(losses_dict_weighted.values()))
-        # make_dot(sketches, params=renderer.get_points_parans()).render(f"{args.output_dir}/comp_graph", format="png")
-        
         loss.backward()
         optimizer.step_()
-        if epoch % args.save_interval == 0:
-            utils.plot_batch(inputs, sketches, f"{args.output_dir}/jpg_logs", counter,
-                             use_wandb=args.use_wandb, title=f"iter{epoch}.jpg")
-            renderer.save_svg(
-                f"{args.output_dir}/svg_logs", f"svg_iter{epoch}")
-        
-        if epoch % args.eval_interval == 0:
-            renderer.save_svg(
-                    f"{args.output_dir}/svg_logs", f"svg_iter{epoch}")
+
+        if epoch % args.eval_interval == 0 and epoch > args.min_eval_iter:
             if args.width_optim:
                 if args.mlp_train and args.optimize_points:
-                        torch.save({
-                            'model_state_dict': renderer.get_mlp().state_dict(),
-                            'optimizer_state_dict': optimizer.get_points_optim().state_dict(),
-                            }, f"{args.output_dir}/mlps/points_mlp{counter}.pt")
-                #         torch.save(renderer.get_mlp().state_dict(), f"{args.output_dir}/points_mlp.pth")
+                    torch.save({
+                        'model_state_dict': renderer.get_mlp().state_dict(),
+                        'optimizer_state_dict': optimizer.get_points_optim().state_dict(),
+                        }, f"{args.output_dir}/mlps/points_mlp{counter}.pt")
                 torch.save({
                     'model_state_dict': renderer.get_width_mlp().state_dict(),
                     'optimizer_state_dict': optimizer.get_width_optim().state_dict(),
@@ -160,7 +140,6 @@ def main(args):
                 if "num_strokes" not in configs_to_save.keys():
                     configs_to_save["num_strokes"] = []
                 configs_to_save["num_strokes"].append(renderer.get_strokes_count())
-
                 for k in losses_dict_norm_eval.keys():
                     original_name, gradnorm_name, final_name = k + "_original_eval", k + "_gradnorm_eval", k + "_final_eval"
                     if original_name not in configs_to_save.keys():
@@ -182,22 +161,13 @@ def main(args):
                         best_iter = epoch
                         best_num_strokes = renderer.get_strokes_count()
                         terminate = False
-                        utils.plot_batch(
-                            inputs, sketches, args.output_dir, counter, use_wandb=args.use_wandb, title="best_iter.jpg")
-                        renderer.save_svg(args.output_dir, "best_iter")
-                        if args.mlp_train and args.optimize_points:
+                        
+                        if args.mlp_train and args.optimize_points and not args.width_optim:
                             torch.save({
                                 'model_state_dict': renderer.get_mlp().state_dict(),
                                 'optimizer_state_dict': optimizer.get_points_optim().state_dict(),
                                 }, f"{args.output_dir}/points_mlp.pt")
-                            # torch.save(renderer.get_mlp().state_dict(), f"{args.output_dir}/points_mlp.pth")
-                        if args.width_optim:
-                            torch.save({
-                                'model_state_dict': renderer.get_width_mlp().state_dict(),
-                                'optimizer_state_dict': optimizer.get_width_optim().state_dict(),
-                                }, f"{args.output_dir}/width_mlp.pt")
-                            # torch.save(renderer.get_width_mlp().state_dict(), f"{args.output_dir}/mlp_width.pth")
-
+                        
                 if args.use_wandb:
                     wandb.run.summary["best_loss"] = best_loss
                     wandb.run.summary["best_loss_fc"] = best_fc_loss
@@ -211,13 +181,6 @@ def main(args):
                     for k in losses_dict_weighted_eval.keys():
                         wandb_dict[k + "_final_eval"] = losses_dict_weighted_eval[k].item()
                     wandb.log(wandb_dict, step=counter)
-
-                
-                # if abs(cur_delta) <= min_delta:
-                #     if terminate:
-                #         break
-                #     terminate = True
-
         if counter == 0 and args.attention_init:
             utils.plot_atten(renderer.get_attn(), renderer.get_thresh(), inputs, renderer.get_inds(),
                              args.use_wandb, "{}/{}.jpg".format(
@@ -244,13 +207,9 @@ def main(args):
             if epoch > 0 and epoch % args.switch_loss == 0:
                     renderer.switch_opt()
                     optimizer.switch_opt()
-
-    renderer.save_svg(args.output_dir, "final_svg")
-    path_svg = os.path.join(args.output_dir, "best_iter.svg")
-    utils.log_sketch_summary_final(
-        path_svg, args.use_wandb, args.device, best_iter, best_loss, "best total")
-    utils.log_best_normalised_sketch(configs_to_save, args.output_dir, args.use_wandb, args.device, args.eval_interval)
-
+    if args.width_optim:
+        utils.log_best_normalised_sketch(configs_to_save, args.output_dir, args.use_wandb, args.device, args.eval_interval, args.min_eval_iter)
+    utils.inference_sketch(args)
     return configs_to_save
 
 if __name__ == "__main__":

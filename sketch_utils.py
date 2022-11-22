@@ -20,7 +20,10 @@ from U2Net_.model import U2NET
 from skimage.transform import resize
 import PIL
 from skimage import morphology
-from skimage.measure import label   
+from skimage.measure import label 
+from models.painter_params import MLP, WidthMLP
+from shutil import copyfile
+
 
 
 def imwrite(img, filename, gamma=2.2, normalize=False, use_wandb=False, wandb_name="", step=0, input_im=None):
@@ -112,7 +115,7 @@ def log_sketch_summary_final(path_svg, use_wandb, device, epoch, loss, title):
     plt.close()
 
 
-def log_best_normalised_sketch(configs_to_save, output_dir, use_wandb, device, eval_interval):
+def log_best_normalised_sketch(configs_to_save, output_dir, use_wandb, device, eval_interval, min_eval_iter):
     losses_eval = {}
     for k in configs_to_save.keys():
         if "_original_eval" in k and "normalization" not in k:
@@ -122,53 +125,25 @@ def log_best_normalised_sketch(configs_to_save, output_dir, use_wandb, device, e
             losses_eval[k] = (cur_arr - mu) / std
 
     final_normalise_losses = sum(list(losses_eval.values()))
-
     sorted_iters = np.argsort(final_normalise_losses)
     index = 0
     best_iter = sorted_iters[index]
-    while best_iter < 5: # take from step 50
-        index += 1
-        best_iter = sorted_iters[index]
-
     best_normalised_loss = final_normalise_losses[best_iter]
     best_num_strokes = configs_to_save["num_strokes"][best_iter]
     
-    iter_ = best_iter * eval_interval
+    iter_ = best_iter * eval_interval + min_eval_iter
     configs_to_save["best_normalised_iter"] = iter_
     configs_to_save["best_normalised_loss"] = best_normalised_loss
     configs_to_save["best_normalised_num_strokes"] = best_num_strokes
+    copyfile(f"{output_dir}/mlps/points_mlp{iter_}.pt",
+                 f"{output_dir}/points_mlp.pt")
+    copyfile(f"{output_dir}/mlps/width_mlp{iter_}.pt",
+                 f"{output_dir}/width_mlp.pt")
 
     if use_wandb:
         wandb.run.summary["best_normalised_loss"] = best_normalised_loss
         wandb.run.summary["best_normalised_iter"] = configs_to_save["best_normalised_iter"]
         wandb.run.summary["best_normalised_num_strokes"] = best_num_strokes
-
-    # save mlp every 10 steps
-    # log best res to wandb and num strokes, and best loss
-    path_svg = os.path.join(output_dir, "svg_logs", f"svg_iter{iter_}.svg")
-    canvas_width, canvas_height, shapes, shape_groups = load_svg(path_svg)
-    _render = pydiffvg.RenderFunction.apply
-    scene_args = pydiffvg.RenderFunction.serialize_scene(
-        canvas_width, canvas_height, shapes, shape_groups)
-    img = _render(canvas_width,  # width
-                  canvas_height,  # height
-                  2,   # num_samples_x
-                  2,   # num_samples_y
-                  0,   # seed
-                  None,
-                  *scene_args)
-
-    img = img[:, :, 3:4] * img[:, :, :3] + \
-        torch.ones(img.shape[0], img.shape[1], 3,
-                   device=device) * (1 - img[:, :, 3:4])
-    img = img[:, :, :3]
-    plt.imshow(img.cpu().numpy())
-    plt.title(iter_)
-    plt.axis("off")
-    if use_wandb:
-        wandb.log({"best normalized": wandb.Image(plt)})
-    plt.close()
-
     
 
 
@@ -313,49 +288,6 @@ def fix_image_scale(im):
     return new_im
 
 
-# def get_mask_u2net(args, pil_im):
-#     data_transforms = transforms.Compose([
-#         transforms.ToTensor(),
-#         transforms.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), std=(
-#             0.26862954, 0.26130258, 0.27577711)),
-#     ])
-
-#     input_im_trans = data_transforms(pil_im).unsqueeze(0).to(args.device)
-
-#     model_dir = os.path.join("./U2Net_/saved_models/u2net.pth")
-#     net = U2NET(3, 1)
-#     if torch.cuda.is_available() and args.use_gpu:
-#         net.load_state_dict(torch.load(model_dir))
-#         net.cuda()
-#     else:
-#         net.load_state_dict(torch.load(model_dir, map_location='cpu'))
-#     net.eval()
-#     with torch.no_grad():
-#         d1, d2, d3, d4, d5, d6, d7 = net(input_im_trans.detach())
-#     pred = d1[:, 0, :, :]
-#     pred = (pred - pred.min()) / (pred.max() - pred.min())
-#     predict = pred
-#     predict[predict < 0.5] = 0
-#     predict[predict >= 0.5] = 1
-
-#     # opposite mask (mask the object insteadof background)
-#     predict_dilated_back = 1 - torch.tensor(ndimage.binary_dilation(predict[0].cpu().numpy(), structure=np.ones((11,11))).astype(np.int)).unsqueeze(0)
-#     mask = torch.cat([predict, predict, predict], axis=0).permute(1, 2, 0)
-#     mask = mask.cpu().numpy()
-#     # predict_np = predict.clone().cpu().data.numpy()
-#     im = Image.fromarray((mask[:, :, 0]*255).astype(np.uint8)).convert('RGB')
-#     im.save(f"{args.output_dir}/mask.png")
-
-#     im_np = np.array(pil_im)
-#     im_np = im_np / im_np.max()
-#     im_np = mask * im_np
-#     im_np[mask == 0] = 1
-#     im_final = (im_np / im_np.max() * 255).astype(np.uint8)
-#     im_final = Image.fromarray(im_final)
-
-#     return im_final, predict, predict_dilated_back
-
-
 def get_size_of_largest_cc(binary_im):
     labels, num = label(binary_im, background=0, return_num=True)
     (unique, counts) = np.unique(labels, return_counts=True)
@@ -472,3 +404,100 @@ def get_mask_u2net(args, pil_im):
     
     return im_final, mask
 
+
+def get_init_points(path_svg):
+    points_init = []
+    canvas_width, canvas_height, shapes, shape_groups = load_svg(path_svg)
+    for path in shapes:
+        points_init.append(path.points)
+    return points_init, canvas_width, canvas_height
+
+
+def is_in_canvas(canvas_width, canvas_height, path, device):
+    shapes, shape_groups = [], []
+    stroke_color = torch.tensor([0.0, 0.0, 0.0, 1.0])
+    shapes.append(path)
+    path_group = pydiffvg.ShapeGroup(shape_ids = torch.tensor([len(shapes) - 1]),
+                                        fill_color = None,
+                                        stroke_color = stroke_color)
+    shape_groups.append(path_group) 
+    _render = pydiffvg.RenderFunction.apply
+    scene_args = pydiffvg.RenderFunction.serialize_scene(
+        canvas_width, canvas_height, shapes, shape_groups)
+    img = _render(canvas_width,  # width
+                canvas_height,  # height
+                2,   # num_samples_x
+                2,   # num_samples_y
+                0,   # seed
+                None,
+                *scene_args)
+    img = img[:, :, 3:4] * img[:, :, :3] + \
+        torch.ones(img.shape[0], img.shape[1], 3,
+                device=device) * (1 - img[:, :, 3:4])
+    img = img[:, :, :3].detach().cpu().numpy()
+    return (1 - img).sum()
+
+
+
+def inference_sketch(args, eps=1e-4):
+    output_dir = args.output_dir
+    mlp_points_weights_path = f"{output_dir}/points_mlp.pt"
+    mlp_width_weights_path = f"{output_dir}/width_mlp.pt"
+    sketch_init_path = f"{output_dir}/svg_logs/init_svg.svg"
+    output_path = f"{output_dir}/"
+    device = args.device
+
+    num_paths = args.num_paths
+    control_points_per_seg = args.control_points_per_seg
+    width_ = 1.5
+    num_control_points = torch.zeros(1, dtype = torch.int32) + (control_points_per_seg - 2)
+    init_widths = torch.ones((num_paths)).to(device) * width_
+    
+    mlp = MLP(num_strokes=num_paths, num_cp=control_points_per_seg).to(device)
+    checkpoint = torch.load(mlp_points_weights_path)
+    mlp.load_state_dict(checkpoint['model_state_dict'])
+
+    if args.width_optim:
+        mlp_width = WidthMLP(num_strokes=num_paths, num_cp=control_points_per_seg).to(device)
+        checkpoint = torch.load(mlp_width_weights_path)
+        mlp_width.load_state_dict(checkpoint['model_state_dict'])
+    
+    points_vars, canvas_width, canvas_height = get_init_points(sketch_init_path)
+    points_vars = torch.stack(points_vars).unsqueeze(0).to(device)
+    points_vars = points_vars / canvas_width
+    points_vars = 2 * points_vars - 1
+    points = mlp(points_vars)
+    
+    all_points = 0.5 * (points + 1.0) * canvas_width
+    all_points = all_points + eps * torch.randn_like(all_points)
+    all_points = all_points.reshape((-1, num_paths, control_points_per_seg, 2))
+
+    if args.width_optim: #first iter use just the location mlp
+        widths_  = mlp_width(init_widths).clamp(min=1e-8)
+        mask_flipped = (1 - widths_).clamp(min=1e-8)
+        v = torch.stack((torch.log(widths_), torch.log(mask_flipped)), dim=-1)
+        hard_mask = torch.nn.functional.gumbel_softmax(v, 0.2, False)
+        stroke_probs = hard_mask[:, 0]
+        widths = stroke_probs * init_widths   
+        
+    shapes = []
+    shape_groups = []
+    for p in range(num_paths):
+        width = torch.tensor(width_)
+        if args.width_optim:
+            width = widths[p]
+        w = width / 1.5 
+        path = pydiffvg.Path(
+            num_control_points=num_control_points, points=all_points[:,p].reshape((-1,2)),
+            stroke_width=width, is_closed=False)
+        # if mode == "init":
+        #     # do once at the begining, define a mask for strokes that are outside the canvas
+        is_in_canvas_ = is_in_canvas(canvas_width, canvas_height, path, device)
+        if is_in_canvas_ and w > 0.7:
+            shapes.append(path)
+            path_group = pydiffvg.ShapeGroup(
+                shape_ids=torch.tensor([len(shapes) - 1]),
+                fill_color=None,
+                stroke_color=torch.tensor([0,0,0,1]))
+            shape_groups.append(path_group)
+    pydiffvg.save_svg(f"{output_path}/best_iter.svg", canvas_width, canvas_height, shapes, shape_groups)

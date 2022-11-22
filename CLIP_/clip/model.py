@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 from .auxilary import *
+import math
 
 class Bottleneck(nn.Module):
     expansion = 4
@@ -242,11 +243,17 @@ class VisualTransformer(nn.Module):
         self.ln_post = LayerNorm(width)
         self.proj = nn.Parameter(scale * torch.randn(width, output_dim))
 
+    
     def forward(self, x: torch.Tensor, attn_mask=None, mode="train"):
+        h, w = x.shape[-2:]
         x = self.conv1(x)  # shape = [*, width, grid, grid]
         x = x.reshape(x.shape[0], x.shape[1], -1)  # shape = [*, width, grid ** 2]
         x = x.permute(0, 2, 1)  # shape = [*, grid ** 2, width]
         x = torch.cat([self.class_embedding.to(x.dtype) + torch.zeros(x.shape[0], 1, x.shape[-1], dtype=x.dtype, device=x.device), x], dim=1)  # shape = [*, grid ** 2 + 1, width]
+        
+        # h, w = x.shape[-2:]
+        # positional_embedding = self.interpolate_pos_encoding(x, w, h)
+        # x = x + positional_embedding.to(x.dtype)
         x = x + self.positional_embedding.to(x.dtype)
         x = self.ln_pre(x)
 
@@ -260,6 +267,36 @@ class VisualTransformer(nn.Module):
             x = x @ self.proj
 
         return x
+
+    # https://github.com/facebookresearch/dino
+    def interpolate_pos_encoding(self, x, w, h):
+        # print("in interpolate_pos_encoding")
+        positional_embedding = self.positional_embedding.unsqueeze(0)
+        patch_size = self.conv1.kernel_size[0]
+
+        npatch = x.shape[1] - 1
+        N = positional_embedding.shape[1] - 1
+        if npatch == N and w == h:
+            return positional_embedding
+        class_pos_embed = positional_embedding[:, 0]
+        patch_pos_embed = positional_embedding[:, 1:]
+        dim = x.shape[-1]
+
+        w0 = w // patch_size
+        h0 = h // patch_size
+
+        # we add a small number to avoid floating point error in the interpolation
+        # see discussion at https://github.com/facebookresearch/dino/issues/8
+        w0, h0 = w0 + 0.1, h0 + 0.1
+        patch_pos_embed = nn.functional.interpolate(
+            patch_pos_embed.reshape(1, int(math.sqrt(N)), int(math.sqrt(N)), dim).permute(0, 3, 1, 2),
+            scale_factor=(w0 / math.sqrt(N), h0 / math.sqrt(N)),
+            mode='bicubic',
+        )
+        assert int(w0) == patch_pos_embed.shape[-2] and int(h0) == patch_pos_embed.shape[-1]
+        patch_pos_embed = patch_pos_embed.permute(0, 2, 3, 1).view(1, -1, dim)
+        return torch.cat((class_pos_embed.unsqueeze(0), patch_pos_embed), dim=1)
+
 
 
 class CLIP(nn.Module):

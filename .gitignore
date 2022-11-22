@@ -1,4 +1,5 @@
 __pycache__/
 output_sketches/
 U2Net_/
-wandb/
+results_sketches/
+notebooks/

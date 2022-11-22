@@ -404,8 +404,7 @@ def get_mask_u2net(args, pil_im):
 
     input_im_trans = next(iter(test_salobj_dataloader))
 
-    # model_dir = os.path.join("/home/vinker/dev/backgroundCLIPasso/CLIPasso/U2Net_/saved_models/u2net.pth")
-    model_dir = '/nfs/private/yuval/scene_clipasso/weights/u2net.pth'
+    model_dir = os.path.join("U2Net_/saved_models/u2net.pth")
     net = U2NET(3, 1)
     if torch.cuda.is_available() and args.use_gpu:
         net.load_state_dict(torch.load(model_dir))

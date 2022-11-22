@@ -4,7 +4,8 @@
 [[Project Website](https://clipasso.github.io/clipasso/)]
 <br>
 <br>
-This is the official implementation of <title>, a method for converting a scene image into a sketch with different types of abstractions by disentangling abstraction into two axes of control: fidelity and simplicity. <br>
+This is the official implementation of <title>, a method for converting a scene image into a sketch with different types of abstractionsץ We disentangle abstraction into two axes of control: fidelity and simplicity. <br>
+Our method generates a whole matrix of sketches for a given input image, in SVG format. <br>
 
 
 <img src="repo_images/teaser_4.png" width="800">
@@ -13,7 +14,7 @@ At a high level, we define a sketch as a set of Bézier curves and train an MLP 
 We combine the final matrices into one ..
 <br>
 
-## Installation
+## Installation (need to push a new docker)
 ### Installation via Docker [Recommended]
 You can simply pull the docker image from docker hub, containing all the required libraries and packages:
 ```bash

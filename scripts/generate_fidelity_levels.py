@@ -12,7 +12,8 @@ import time
 # You can use this to create both the objects and background. 
 # The default parameters are set for the background case.
 # Example of a running command:
-# CUDA_VISIBLE_DEVICES=1 python scripts/generate_fidelity_levels.py --im_name "man_flowers" --layer_opt 2 --object_or_background "object" --resize_obj 1
+# CUDA_VISIBLE_DEVICES=1 python scripts/generate_fidelity_levels.py --im_name "man_flowers" --layer_opt 8 --object_or_background "object" --resize_obj 1
+# CUDA_VISIBLE_DEVICES=2 python scripts/generate_fidelity_levels.py --im_name "man_flowers" --layer_opt 8 --object_or_background "background"
 # CUDA_VISIBLE_DEVICES=2 python scripts/generate_fidelity_levels.py --im_name "man_flowers" --layer_opt 8 --object_or_background "background"
 
 
@@ -26,7 +27,6 @@ args = parser.parse_args()
 
 path_to_input_images = "./target_images" # where the input images are located
 output_pref = "./results_sketches"
-num_sketches = 2
 
 # if you run on objects, this need to be changed:
 im_filename = f"{args.im_name}_mask.png"
@@ -44,7 +44,7 @@ if args.object_or_background == "object":
 # ===================
 num_strokes = 64
 num_sketches = 2
-num_iter = 1001
+num_iter = 1501
 # ===================
 
 # set the weights for each layer
@@ -71,6 +71,8 @@ sp.run(["python",
         "--mask_object", str(mask_object),
         "--clip_conv_layer_weights", clip_conv_layer_weights,
         "--gradnorm", str(gradnorm),
-        "--resize_obj", str(args.resize_obj)])
+        "--resize_obj", str(args.resize_obj),
+        "--eval_interval", str(50),
+        "--min_eval_iter", str(400)])
 total_time = time.time() - start_time
 print(f"Time for one sketch [{total_time:.3f}] seconds")

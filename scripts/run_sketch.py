@@ -79,6 +79,8 @@ parser.add_argument("--resize_obj", type=int, default=0)
 parser.add_argument('-colab', action='store_true')
 parser.add_argument('-cpu', action='store_true')
 
+parser.add_argument("--eval_interval", type=int, default=20)
+parser.add_argument("--min_eval_iter", type=int, default=100)
 
 args = parser.parse_args()
 
@@ -158,7 +160,9 @@ def run(seed, wandb_name, output_dir, losses_best_normalised, losses_eval_sum):
                             "--width_weights_lst", args.width_weights_lst,
                             "--width_lr", str(args.width_lr),
                             "--ratio_loss", str(args.ratio_loss),
-                            "--resize_obj", str(args.resize_obj)])
+                            "--resize_obj", str(args.resize_obj),
+                            "--eval_interval", str(args.eval_interval),
+                            "--min_eval_iter", str(args.min_eval_iter)])
     if exit_code.returncode:
         sys.exit(1)
 
@@ -166,7 +170,8 @@ def run(seed, wandb_name, output_dir, losses_best_normalised, losses_eval_sum):
         config = np.load(f"{output_dir}/{wandb_name}/config.npy",
                      allow_pickle=True)[()]
     except Exception as e: print(e)
-    losses_best_normalised[wandb_name] = config["best_normalised_loss"]
+    if args.width_optim:
+        losses_best_normalised[wandb_name] = config["best_normalised_loss"]
 
     loss_eval = np.array(config['loss_eval'])
     inds = np.argsort(loss_eval)
@@ -205,17 +210,17 @@ if __name__ == "__main__":
     if args.width_optim:
         sorted_final_n = dict(sorted(losses_best_normalised.items(), key=lambda item: item[1]))
         winning_trial = list(sorted_final_n.keys())[0]
-        config = np.load(f"{output_dir}/{winning_trial}/config.npy",
-                            allow_pickle=True)[()]
-        best_normalised_iter = config["best_normalised_iter"]
-        copyfile(f"{output_dir}/{winning_trial}/svg_logs/svg_iter{best_normalised_iter}.svg",
+        # config = np.load(f"{output_dir}/{winning_trial}/config.npy",
+        #                     allow_pickle=True)[()]
+        copyfile(f"{output_dir}/{winning_trial}/svg_logs/init_svg.svg",
+                f"{output_dir}/init.svg")
+        copyfile(f"{output_dir}/{winning_trial}/best_iter.svg",
                 f"{output_dir}/{winning_trial}_best.svg")
-
-    
-        copyfile(f"{output_dir}/{winning_trial}/mlps/width_mlp{best_normalised_iter}.pt",
-                 f"{output_dir}/width_mlp_n.pt")
-        copyfile(f"{output_dir}/{winning_trial}/mlps/points_mlp{best_normalised_iter}.pt",
-                 f"{output_dir}/points_mlp_n.pt")
+        copyfile(f"{output_dir}/{winning_trial}/points_mlp.pt",
+                f"{output_dir}/points_mlp.pt")
+        copyfile(f"{output_dir}/{winning_trial}/width_mlp.pt",
+                f"{output_dir}/width_mlp.pt")
+                
         for folder_name in list(sorted_final_n.keys()):
             shutil.rmtree(f"{output_dir}/{folder_name}/mlps")
     
@@ -223,6 +228,9 @@ if __name__ == "__main__":
     else:
         sorted_final = dict(sorted(losses_eval_sum.items(), key=lambda item: item[1]))
         winning_trial = list(sorted_final.keys())[0]
+        print(f"{output_dir}/{winning_trial}")
+        copyfile(f"{output_dir}/{winning_trial}/svg_logs/init_svg.svg",
+                f"{output_dir}/init.svg")
         copyfile(f"{output_dir}/{winning_trial}/best_iter.svg",
                 f"{output_dir}/{winning_trial}_best.svg")
         copyfile(f"{output_dir}/{winning_trial}/points_mlp.pt",

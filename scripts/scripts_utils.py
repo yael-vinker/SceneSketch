@@ -30,33 +30,6 @@ def ratios_to_str(ratios):
     ratios_str = ratios_str[:-1]
     return ratios_str
 
-def get_ratios_dict(path_to_initial_sketches, rel_layer, folder_name_rel, folder_name_l, layer, seed1, ratios_rel, im_name):        
-    svg_filename = get_svg_path(f"{path_to_initial_sketches}/{folder_name_rel}")
-    seed = get_seed(svg_filename)
-    path_l_rel = f"{path_to_initial_sketches}/{folder_name_rel}/{folder_name_rel}_seed{seed}"
-    loss_clip_l_rel, best_iter_rel, loss_clip_layer_rel = get_clip_loss(path_l_rel, rel_layer)
-    best_lclip_rel = loss_clip_l_rel[best_iter_rel]
-    best_lclip_layer_rel = loss_clip_layer_rel[best_iter_rel]
-
-    svg_filename = get_svg_path(f"{path_to_initial_sketches}/{folder_name_l}")
-    seed = get_seed(svg_filename)
-    path_li = f"{path_to_initial_sketches}/{folder_name_l}/{folder_name_l}_seed{seed}"
-    loss_clip_li, best_iter, loss_clip_layer = get_clip_loss(path_li, layer)
-    best_lclip_i = loss_clip_li[best_iter]
-    best_lclip_layer = loss_clip_layer[best_iter]
-
-    div1 = best_lclip_layer / best_lclip_layer_rel  
-    div2 = best_lclip_i / best_lclip_rel   
-
-    ratios_l1 = ratios_rel / div1
-    ratios_l = ratios_rel / div2
-
-    ratios_str1 = ratios_to_str(ratios_l1)
-    ratios_str2 = ratios_to_str(ratios_l)
-    # ratios_str1 (layer), ratios_str2 (L4 + layer)
-    return ratios_str1, ratios_str2
-
-
 def func(x, a, c, d):
     return a*np.exp(c*x)
 
@@ -82,7 +55,7 @@ def get_clip_loss2(path, layer, object_or_background):
         loss_clip_layer = 1*loss_clip_layer4 + loss_clip_layer
     return best_iter, loss_clip_layer
        
-def get_ratios_dict3(path_to_initial_sketches, folder_name_l, layer, im_name, object_or_background, step_size_l, num_ratios=8):        
+def get_ratios_dict(path_to_initial_sketches, folder_name_l, layer, im_name, object_or_background, step_size_l, num_ratios=8):        
     # get the sketch of the given layer, and get L_clip_i 
     svg_filename = get_svg_file(f"{path_to_initial_sketches}/{folder_name_l}")
     seed = get_seed(svg_filename)

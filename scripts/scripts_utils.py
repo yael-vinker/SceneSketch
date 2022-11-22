@@ -1,6 +1,8 @@
 import os
 import numpy as np
 from scipy.optimize import curve_fit
+import pydiffvg
+import torch
 
 
 def get_svg_file(path):
@@ -87,4 +89,46 @@ def get_ratios_dict(path_to_initial_sketches, folder_name_l, layer, im_name, obj
     print(f"layer {layer} r_1_k {r_1_k} \n new {ratios_str} \n x {xs_layer_l_str}\n")
     return ratios_str
 
+def read_svg(path_svg, multiply=False, resize_obj=False, params=None, opacity=1, device=None):
+    if device is None:
+        print("setting device")
+        device = torch.device("cuda" if (
+            torch.cuda.is_available() and torch.cuda.device_count() > 0) else "cpu")
+    pydiffvg.set_device(device)
+    canvas_width, canvas_height, shapes, shape_groups = pydiffvg.svg_to_scene(
+        path_svg)
+    for group in shape_groups:
+        group.stroke_color = torch.tensor([0,0,0,opacity])
+    if resize_obj and params:
+        w, h = params["scale_w"], params["scale_h"]
+        for path in shapes:
+            path.points = path.points / canvas_width
+            path.points = 2 * path.points - 1
+            path.points[:,0] /= (w)# / canvas_width)
+            path.points[:,1] /= (h)# / canvas_height)
+            path.points = 0.5 * (path.points + 1.0) * canvas_width
+            center_x, center_y = canvas_width / 2, canvas_height / 2
+            path.points[:,0] += (params["original_center_x"] * canvas_width - center_x)
+            path.points[:,1] += (params["original_center_y"] * canvas_height - center_y)
+    if multiply:
+        canvas_width *= 2
+        canvas_height *= 2
+        for path in shapes:
+            path.points *= 2
+            path.stroke_width *= 2
+    _render = pydiffvg.RenderFunction.apply
+    scene_args = pydiffvg.RenderFunction.serialize_scene(
+        canvas_width, canvas_height, shapes, shape_groups)
+    img = _render(canvas_width,  # width
+                  canvas_height,  # height
+                  2,   # num_samples_x
+                  2,   # num_samples_y
+                  0,   # seed
+                  None,
+                  *scene_args)
+    img = img[:, :, 3:4] * img[:, :, :3] + \
+        torch.ones(img.shape[0], img.shape[1], 3,
+                   device=device) * (1 - img[:, :, 3:4])
+    img = img[:, :, :3].cpu().numpy()
+    return img
 

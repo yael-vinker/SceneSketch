@@ -1,23 +1,17 @@
-# CLIPasso: Semantically-Aware Object Sketching (SIGGRAPH 2022)
+# Project Title
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yael-vinker/CLIPasso/blob/main/CLIPasso.ipynb) 
 [![arXiv](https://img.shields.io/badge/arXiv-2108.00946-b31b1b.svg)](https://arxiv.org/abs/2202.05822)
-
-
-
 [[Project Website](https://clipasso.github.io/clipasso/)]
 <br>
 <br>
-This is the official implementation of CLIPasso, a method for converting an image of an object to a sketch, allowing for varying levels of abstraction. <br>
+This is the official implementation of <title>, a method for converting a scene image into a sketch with different types of abstractions by disentangling abstraction into two axes of control: fidelity and simplicity. <br>
 
 <br>
 <br>
 
-![](repo_images/teaser2.png?raw=true)
-At a high level, we define a sketch as a set of Bézier curves and use a differentiable rasterizer ([diffvg](https://github.com/BachiLi/diffvg)) to optimize the parameters of the curves directly with respect to a CLIP-based perceptual loss. <br>
-We combine the final and intermediate activations of a pre-trained CLIP model to achieve both geometric and semantic simplifications.
-<br> The abstraction degree is controlled by varying the number of strokes.
-    
+![](repo_images/teaser.png?raw=true)
+At a high level, we define a sketch as a set of Bézier curves and train an MLP network to ... bla <br>
+We combine the final matrices into one ..
 <br>
 
 ## Installation
@@ -32,8 +26,8 @@ Inside the container, clone the repository:
 
 ```bash
 cd /home
-git clone https://github.com/yael-vinker/CLIPasso.git
-cd CLIPasso/
+git https://github.com/yael-vinker/SceneSketch.git
+cd SceneSketch/
 ```
 Now you are all set and ready to move to the next stage (Run Demo).
 
@@ -41,8 +35,8 @@ Now you are all set and ready to move to the next stage (Run Demo).
 Note that it is recommended to use the provided docker image, as we rely on diffvg which has specific requirements and does not compile smoothly on every environment.
 1.  Clone the repo:
 ```bash
-git clone https://github.com/yael-vinker/CLIPasso.git
-cd CLIPasso
+git clone https://github.com/yael-vinker/SceneSketch.git
+cd SceneSketch
 ```
 2. Create a new environment and install the libraries:
 ```bash
@@ -64,54 +58,55 @@ python setup.py install
 
 ## Run Demo
 
-<!-- #### Run a model on your own image -->
-
 The input images to be drawn should be located under "target_images".
-To sketch your own image, from CLIPSketch run:
+The expected format should be:
+* <image_name>.jpg - the original scene image
+* <image_name>_mask.png - the inpainted masked background, <br>
+You can automatically produce the inpainted image with [this easy to use LAMA demo](https://huggingface.co/spaces/akhaliq/lama). <br>
+Also note that both images need to be square.
+
+As mentioned in the paper, we first generate the first row (fidelity axis) and then for each sketch in the row we generate ...
+To run this ppieline, use the "run_all.py" script (under scripts), by simply running:
 ```bash
-python run_object_sketching.py --target_file <file_name>
+python scripts/run_all.py --im_name <im_name>
 ```
-The resulting sketches will be saved to the "output_sketches" folder, in SVG format.
+For example, on the ballerina image:
+```bash
+python scripts/run_all.py --im_name "ballerina"
+```
+The resulting sketches will be saved to the "results_sketches/<im_name>" folder, in SVG and png format.
 
-Optional arguments:
-* ```--num_strokes``` Defines the number of strokes used to create the sketch, which determines the level of abstraction. The default value is set to 16, but for different images, different numbers might produce better results. 
-* ```--mask_object``` It is recommended to use images without a background, however, if your image contains a background, you can mask it out by using this flag with "1" as an argument.
-* ```--fix_scale``` If your image is not squared, it might be cut off, it is recommended to use this flag with 1 as input to automatically fix the scale without cutting the image.
-* ```--num_sketches``` As stated in the paper, by default there will be three parallel running scripts to synthesize three sketches and automatically choose the best one. However, for some environments (for example when running on CPU) this might be slow, so you can specify --num_sketches 1 instead.
-* ```-cpu``` If you want to run the code on the cpu (not recommended as it might be very slow).
 
+Once the script have finished running (this can take up to few hours, for faster version and layer selection see "Play with the scripts" below), you can visualize the results using:
+```bash
+python scripts/combine_matrix.py --im_name <im_name>
+```
 <br>
-<b>For example, below are optional running configurations:</b>
+The resulting matrixes and SVGs for the "ballerina" image are provided under "results_sketches/ballerina"
 <br>
 
-Sketching the camel with defauls parameters:
-```bash
-python run_object_sketching.py --target_file "camel.png"
-```
-Producing a single sketch of the camel at lower level of abstraction with 32 strokes:
-```bash
-python run_object_sketching.py --target_file "camel.png" --num_strokes 32 --num_sketches 1
-```
-Sketching the flamingo with higher level of abstraction, using 8 strokes:
-```bash
-python run_object_sketching.py --target_file "flamingo.png" --num_strokes 8
-```
+### Play with the scripts
 
-## Related Work
-[CLIPDraw](https://arxiv.org/abs/2106.14843): Exploring Text-to-Drawing Synthesis through Language-Image Encoders, 2021 (Kevin Frans, L.B. Soros, Olaf Witkowski)
+If you want to run our method for spesific fidelity or simplicity levels, you can use the dedicated scripts under "scripts", spesifically:
+* ```generate_fidelity_levels.py``` - generates a single sketch at a given fidelity layer. <br>
+    For background, run with:
+    ```bash
+    python scripts/generate_fidelity_levels.py --im_name <im_name> --layer_opt <desired_layer> --object_or_background "background"
+    ```
+    For objects, run with:
+    ```bash
+    python scripts/generate_fidelity_levels.py --im_name <im_name> --layer_opt <desired_layer> --object_or_background "object" --resize_obj 1
+    ```
+* ```run_ratio.py``` - generates a single column of simplified sketches, for a given fidelity level. <br>
+    For background, run with:
+    ```bash
+    python scripts/run_ratio.py --im_name <im_name> --layer_opt <desired_layer> --object_or_background "background" --min_div <step_size>
+    ```
+    For objects, run with:
+    ```bash
+    python scripts/run_ratio.py --im_name <im_name> --layer_opt <desired_layer> --object_or_background "object" --min_div <step_size> --resize 1
+    ```
+    Where <step_size> is the parameter to sample the function f_k (as described in the paper). You can find the spesific parameters under   "scripts/run_all.py" 
 
-[Diffvg](https://github.com/BachiLi/diffvg): Differentiable vector graphics rasterization for editing and learning, ACM Transactions on Graphics 2020 (Tzu-Mao Li, Michal Lukáč, Michaël Gharbi, Jonathan Ragan-Kelley)
 
-## Citation
-If you make use of our work, please cite our paper:
 
-```
-@misc{vinker2022clipasso,
-      title={CLIPasso: Semantically-Aware Object Sketching}, 
-      author={Yael Vinker and Ehsan Pajouheshgar and Jessica Y. Bo and Roman Christian Bachmann and Amit Haim Bermano and Daniel Cohen-Or and Amir Zamir and Ariel Shamir},
-      year={2022},
-      eprint={2202.05822},
-      archivePrefix={arXiv},
-      primaryClass={cs.GR}
-}
-```

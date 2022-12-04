@@ -1,11 +1,11 @@
-# Project Title
+# CLIPascene: Scene Sketching with Different Types and Levels of Abstraction
 
-[![arXiv](https://img.shields.io/badge/arXiv-2108.00946-b31b1b.svg)](https://arxiv.org/abs/2202.05822)
-[[Project Website](https://clipasso.github.io/clipasso/)]
+[![arXiv](https://img.shields.io/badge/arXiv-2108.00946-b31b1b.svg)](https://arxiv.org/abs/2211.17256)
+[[Project Website](https://clipascene.github.io/CLIPascene/)]
 <br>
 <br>
-This is the official implementation of <title>, a method for converting a scene image into a sketch with different types of abstractionsץ We disentangle abstraction into two axes of control: fidelity and simplicity. <br>
-Our method generates a whole matrix of sketches for a given input image, in SVG format. <br>
+This is the official implementation of "CLIPascene: Scene Sketching with Different Types and Levels of Abstraction", a method for converting a scene image into a sketch with different types and multiple levels of abstractions. We disentangle abstraction into two axes of control: fidelity and simplicity. <br>
+Our method generates a whole matrix of sketches for a given input image. <br>
 
 
 <img src="repo_images/teaser_4.png" width="800">

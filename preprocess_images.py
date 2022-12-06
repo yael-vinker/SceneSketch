@@ -1,0 +1,192 @@
+# ===================================================
+# ================= preprocess ======================
+# ===================================================
+# This script preprocess the input images.
+# Spesifically, we divie the image into two regions - foreground and background using U2Net
+# if you want to provide your own mask, use this script with --run_u2net 0
+# Otherwise, we will automatically generate the mask for you.
+# Then we use LAMA inpainting to fill the missing areas for the background image.
+# Example of a running command:
+# CUDA_VISIBLE_DEVICES=6 python preprocess_images.py --im_name "man_flowers.png"
+# ===================================================
+import argparse
+import torch
+import u2net_utils
+from PIL import Image
+from torch.utils.data import DataLoader
+from torchvision import transforms
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+from U2Net_.model import U2NET
+from skimage.transform import resize
+import imageio
+from scipy import ndimage
+
+import logging
+import os
+import sys
+import traceback
+
+from lama.saicinpainting.evaluation.utils import move_to_device
+from lama.saicinpainting.evaluation.refinement import refine_predict
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
+os.environ['VECLIB_MAXIMUM_THREADS'] = '1'
+os.environ['NUMEXPR_NUM_THREADS'] = '1'
+
+import cv2
+import hydra
+import numpy as np
+import torch
+import tqdm
+import yaml
+from omegaconf import OmegaConf
+from torch.utils.data._utils.collate import default_collate
+
+from lama.saicinpainting.training.data.datasets import make_default_val_dataset
+from lama.saicinpainting.training.trainers import load_checkpoint
+from lama.saicinpainting.utils import register_debug_signal_handlers
+
+LOGGER = logging.getLogger(__name__)
+
+
+def get_U2Net_mask(top_path, im_name, device, use_gpu):
+    im = Image.open(f"{top_path}/scene/{im_name}")
+    w, h = im.size[0], im.size[1]
+
+    test_salobj_dataset = u2net_utils.SalObjDataset(imgs_list=[im],
+                                                        lbl_name_list=[],
+                                                        transform=transforms.Compose([u2net_utils.RescaleT(320),
+                                                                                      u2net_utils.ToTensorLab(flag=0)]))
+    test_salobj_dataloader = DataLoader(test_salobj_dataset,
+                                            batch_size=1,
+                                            shuffle=False,
+                                            num_workers=1)
+
+    input_im_trans = next(iter(test_salobj_dataloader))
+
+    model_dir = os.path.join("U2Net_/saved_models/u2net.pth")
+    net = U2NET(3, 1)
+    if torch.cuda.is_available() and use_gpu:
+        net.load_state_dict(torch.load(model_dir))
+        net.to(device)
+    else:
+        net.load_state_dict(torch.load(model_dir, map_location='cpu'))
+    net.eval()
+
+    with torch.no_grad():
+        input_im_trans = input_im_trans.type(torch.FloatTensor)
+        d1, d2, d3, d4, d5, d6, d7 = net(input_im_trans.to(device))
+
+    pred = d1[:, 0, :, :]
+    pred = (pred - pred.min()) / (pred.max() - pred.min())
+    predict = pred
+
+    predict[predict < 0.5] = 0
+    predict[predict >= 0.5] = 1
+    
+    predict = torch.tensor(ndimage.binary_dilation(predict[0].cpu().numpy(), structure=np.ones((11,11))).astype(np.int)).unsqueeze(0)
+
+    mask = torch.cat([predict, predict, predict], axis=0).permute(1, 2, 0)
+    mask = mask.cpu().numpy()
+    max_val = mask.max()
+    mask[mask > max_val / 2] = 255
+    mask = mask.astype(np.uint8)
+    mask = resize(mask, (h, w), anti_aliasing=False, order=0)
+    mask[mask < 0.5] = 0
+    mask[mask >= 0.5] = 1
+    
+    return mask
+
+
+def apply_inpaint(predict_config, device):
+    try:
+        # register_debug_signal_handlers()  # kill -10 <pid> will result in traceback dumped into log
+
+        train_config_path = os.path.join(predict_config.model.path, 'config.yaml')
+        with open(train_config_path, 'r') as f:
+            train_config = OmegaConf.create(yaml.safe_load(f))
+
+        train_config.training_model.predict_only = True
+        train_config.visualizer.kind = 'noop'
+
+        out_ext = predict_config.get('out_ext', '.png')
+
+        checkpoint_path = os.path.join(predict_config.model.path, 
+                                       'models', 
+                                       predict_config.model.checkpoint)
+        model = load_checkpoint(train_config, checkpoint_path, strict=False, map_location='cpu')
+        model.freeze()
+        if not predict_config.get('refine', False):
+            model.to(device)
+
+        if not predict_config.indir.endswith('/'):
+            predict_config.indir += '/'
+
+        dataset = make_default_val_dataset(predict_config.indir, **predict_config.dataset)
+        for img_i in tqdm.trange(len(dataset)):
+            mask_fname = dataset.mask_filenames[img_i]
+            print(mask_fname)
+            cur_out_fname = os.path.join(
+                predict_config.outdir, 
+                os.path.splitext(mask_fname[len(predict_config.indir):])[0] + out_ext
+            )
+            os.makedirs(os.path.dirname(cur_out_fname), exist_ok=True)
+            batch = default_collate([dataset[img_i]])
+            if predict_config.get('refine', False):
+                assert 'unpad_to_size' in batch, "Unpadded size is required for the refinement"
+                # image unpadding is taken care of in the refiner, so that output image
+                # is same size as the input image
+                cur_res = refine_predict(batch, model, **predict_config.refiner)
+                cur_res = cur_res[0].permute(1,2,0).detach().cpu().numpy()
+            else:
+                with torch.no_grad():
+                    batch = move_to_device(batch, device)
+                    batch['mask'] = (batch['mask'] > 0) * 1
+                    batch = model(batch)                    
+                    cur_res = batch[predict_config.out_key][0].permute(1, 2, 0).detach().cpu().numpy()
+                    unpad_to_size = batch.get('unpad_to_size', None)
+                    if unpad_to_size is not None:
+                        orig_height, orig_width = unpad_to_size
+                        cur_res = cur_res[:orig_height, :orig_width]
+
+            cur_res = np.clip(cur_res * 255, 0, 255).astype('uint8')
+            cur_res = cv2.cvtColor(cur_res, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(cur_out_fname, cur_res)
+
+    except KeyboardInterrupt:
+        LOGGER.warning('Interrupted by user')
+    except Exception as ex:
+        LOGGER.critical(f'Prediction failed due to {ex}:\n{traceback.format_exc()}')
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--run_u2net", type=int, default=1)
+    parser.add_argument("--im_name", type=str, default="man_flowers.png")
+    parser.add_argument("--top_path", type=str, default="./target_images")
+    parser.add_argument("--use_gpu", type=int, default=1)
+    args = parser.parse_args()
+
+    device = torch.device("cuda" if (
+            torch.cuda.is_available() and torch.cuda.device_count() > 0) else "cpu")
+
+    if args.run_u2net:
+        print("Producing mask using U2Net....")
+        mask = get_U2Net_mask(args.top_path, args.im_name, device, args.use_gpu)
+        output_path = f"{args.top_path}/scene/{os.path.splitext(args.im_name)[0]}_mask.png"
+        imageio.imsave(output_path, mask)
+        print(f"Mask generated successfully! and saved to {output_path}")
+
+    # running LAMA
+    print("=" * 50)
+    print("Applying LAMA inpainting....")
+    conf = OmegaConf.load('lama/configs/prediction/default.yaml')     
+    conf.model.path = "lama/big-lama"
+    conf.indir = "./target_images/scene/"
+    conf.outdir = "./target_images/background/"
+    apply_inpaint(conf, device)
+        

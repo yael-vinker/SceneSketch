@@ -30,13 +30,15 @@ output_pref = f"./results_sketches/{args.im_name}/runs"
 
 # if you run on objects, this need to be changed:
 im_filename = f"{args.im_name}_mask.png"
+folder_ = "background"
 gradnorm = 0
 mask_object = 0
 if args.object_or_background == "object":
     if args.layer_opt != 4:
         gradnorm = 1
     mask_object = 1
-    im_filename = f"{args.im_name}.jpg"
+    im_filename = f"{args.im_name}.png"
+    folder_ = "scene"
 
 
 # ===================
@@ -56,7 +58,7 @@ clip_conv_layer_weights_int[args.layer_opt] = 1
 clip_conv_layer_weights_str = [str(j) for j in clip_conv_layer_weights_int]
 clip_conv_layer_weights = ','.join(clip_conv_layer_weights_str)
 
-file_ = f"{path_to_input_images}/{im_filename}"
+file_ = f"{path_to_input_images}/{folder_}/{im_filename}"
 test_name = f"{args.object_or_background}_l{args.layer_opt}_{os.path.splitext(im_filename)[0]}"
 print(test_name)
 

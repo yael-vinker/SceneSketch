@@ -10,7 +10,9 @@ import time
 # parameters (images and layers per image).
 # and then call the existing script from here.
 # Example of a running command:
-# CUDA_VISIBLE_DEVICES=6 python scripts/run_all.py --im_name "ballerina"
+# CUDA_VISIBLE_DEVICES=6 python scripts/run_all.py --im_name "man_flowers"
+# CUDA_VISIBLE_DEVICES=2 python scripts/run_all.py --im_name "hummingbird"
+# CUDA_VISIBLE_DEVICES=3 python scripts/run_all.py --im_name "boat"
 # ===================================================
 
 parser = argparse.ArgumentParser()
@@ -18,7 +20,7 @@ parser.add_argument("--im_name", type=str, default="")
 args = parser.parse_args()
 
 # run the first row (fidelity axis)
-layers = [2,7,8,11]
+layers = [3,6]#,8,11]
 
 start_time_fidelity_b = time.time()
 for l in layers:

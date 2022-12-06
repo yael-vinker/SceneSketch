@@ -13,8 +13,8 @@ import scripts_utils
 # The script recieves the name of the desired image, and the layer of interest.
 # The set of ratios are automatically calculated as part of this script.
 # Example of a running command:
-# CUDA_VISIBLE_DEVICES=1 python scripts/run_ratio.py --im_name "man_flowers" --layer_opt 11 --object_or_background "background" --min_div 0.9
-# CUDA_VISIBLE_DEVICES=6 python scripts/run_ratio.py --im_name "man_flowers" --layer_opt 11 --object_or_background "object" --min_div 0.9 --resize 1
+# CUDA_VISIBLE_DEVICES=7 python scripts/run_ratio.py --im_name "man_flowers" --layer_opt 8 --object_or_background "background" --min_div 0.5
+# CUDA_VISIBLE_DEVICES=6 python scripts/run_ratio.py --im_name "man_flowers" --layer_opt 8 --object_or_background "object" --min_div 0.5 --resize 1
 # ====================================================
 
 parser = argparse.ArgumentParser()
@@ -33,7 +33,8 @@ path_to_files = "./target_images"  # where the input images are located
 output_pref = f"./results_sketches/{args.im_name}/runs" # path to output the results
 path_res_pref = f"./results_sketches/{args.im_name}/runs" # path to take semantic trained models from
 filename = f"{args.im_name}_mask.png" if args.object_or_background == "background" else f"{args.im_name}.jpg"
-file_ = f"{path_to_files}/{filename}"
+folder_ = "background" if args.object_or_background == "background" else "scene"
+file_ = f"{path_to_files}/{folder_}/{filename}"
 
 res_filename = f"{args.object_or_background}_l{args.layer_opt}_{os.path.splitext(filename)[0]}"
 

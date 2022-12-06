@@ -7,7 +7,7 @@ import torch
 
 def get_svg_file(path):
     files = os.listdir(path)
-    files = [f for f in files if ".svg" in f]
+    files = [f for f in files if "best.svg" in f]
     return files[0]
 
 def get_seed(filename):

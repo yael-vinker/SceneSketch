@@ -1,28 +1,28 @@
-# Project Title
+# CLIPascene: Scene Sketching with Different Types and Levels of Abstraction
 
-[![arXiv](https://img.shields.io/badge/arXiv-2108.00946-b31b1b.svg)](https://arxiv.org/abs/2202.05822)
-[[Project Website](https://clipasso.github.io/clipasso/)]
+[![arXiv](https://img.shields.io/badge/arXiv-2108.00946-b31b1b.svg)](https://arxiv.org/abs/2211.17256)
+[[Project Website](https://clipascene.github.io/CLIPascene/)]
 <br>
 <br>
-This is the official implementation of <title>, a method for converting a scene image into a sketch with different types of abstractions by disentangling abstraction into two axes of control: fidelity and simplicity. <br>
+This is the official implementation of CLIPascene, a method for converting a scene image into a sketch with different types and multiple levels of abstraction. We disentangle abstraction into two axes of control: fidelity and simplicity. <br>
+Our method generates a whole matrix of sketches for a given input image. <br>
 
-<br>
+
+<img src="repo_images/teaser_4.png" width="800">
+
+At a high level, given an input image of a scene, we seperate the image intot two regions - the foreground and background.
+We then sketch each of them independently, and create a corresponding matrix of abstractions for each.
+We then combine the two matrices into one. we define a sketch as a set of Bézier curves and train two MLP networks -- one to leran the strokes locations, and the second to learn how to gradually remove select strokes from a given sketch. <br>
 <br>
 
-![](repo_images/teaser_4.png?raw=true)
-At a high level, we define a sketch as a set of Bézier curves and train an MLP network to ... bla <br>
-We combine the final matrices into one ..
-<br>
-
-## Installation
-### Installation via Docker [Recommended]
+## Installation via Docker
 You can simply pull the docker image from docker hub, containing all the required libraries and packages:
 ```bash
-docker pull yaelvinker/clipasso_docker
-docker run --name clipsketch -it yaelvinker/clipasso_docker /bin/bash
+docker pull yaelvinker/clipascene
+docker run --name clipascene -p 8888:8888 --gpus all -it yaelvinker/clipasso_docker /bin/bash
 ```
 Now you should have a running container.
-Inside the container, clone the repository:
+Inside the container, go to /home directory, and clone the repository:
 
 ```bash
 cd /home
@@ -31,42 +31,27 @@ cd SceneSketch/
 ```
 Now you are all set and ready to move to the next stage (Run Demo).
 
-### Installation via pip
-Note that it is recommended to use the provided docker image, as we rely on diffvg which has specific requirements and does not compile smoothly on every environment.
-1.  Clone the repo:
-```bash
-git clone https://github.com/yael-vinker/SceneSketch.git
-cd SceneSketch
-```
-2. Create a new environment and install the libraries:
-```bash
-python3.7 -m venv clipsketch
-source clipsketch/bin/activate
-pip install -r requirements.txt
-pip install torch==1.7.1+cu101 torchvision==0.8.2+cu101 -f https://download.pytorch.org/whl/torch_stable.html
-pip install git+https://github.com/openai/CLIP.git
-```
-3. Install diffvg:
-```bash
-git clone https://github.com/BachiLi/diffvg
-cd diffvg
-git submodule update --init --recursive
-python setup.py install
-```
-
-<br>
 
 ## Run Demo
+### Image Preprocessing
+The input scene images should be provided in __png format__, and should be located under "./target_images". <br>
+Please provide a __square__ image with a reasonable size (maximum ~500px). <br>
+For the best performances, we split the scene image into foreground and background, and sketch each seperately. <br>
+If you wish to apply our method without the split, you can move on to the next stage (Start Sketching). <br>
+Otherwise, run:
+```bash
+python preprocess_images.py --im_name <im_name>
+```
+Where <im_name> can be for example "ballerina.png". <br>
+This script will:
+* Generate a mask image using U2Net (saved under "target_images/scene/<im_name>_mask.png")
+* Generate the inpainted background image guided by the mask, using LAMA (saved under "target_images/background/<im_name>_mask.png") <br>
 
-The input images to be drawn should be located under "target_images".
-The expected format should be:
-* <image_name>.jpg - the original scene image
-* <image_name>_mask.png - the inpainted masked background, <br>
-You can automatically produce the inpainted image with [this easy to use LAMA demo](https://huggingface.co/spaces/akhaliq/lama). <br>
-Also note that both images need to be square.
+Note that you can also directly use [this LAMA demo](https://huggingface.co/spaces/akhaliq/lama) with the "U2Net" option, and just locate the resulting inpainted background under "target_images/background/<im_name>_mask.png".
 
-As mentioned in the paper, we first generate the first row (fidelity axis) and then for each sketch in the row we generate ...
-To run this ppieline, use the "run_all.py" script (under scripts), by simply running:
+### Start Sketching
+As mentioned in the paper, we first generate the first row (fidelity axis) and then for each sketch in the row we generate the corresponding simplified sketches along the simplicity axis. <br> 
+To run this pipeline, use the "run_all.py" script (under scripts), by simply running:
 ```bash
 python scripts/run_all.py --im_name <im_name>
 ```

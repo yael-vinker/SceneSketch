@@ -21,10 +21,6 @@ import scripts_utils
 # CUDA_VISIBLE_DEVICES=5 python scripts/combine_matrix.py --im_name "man_flowers"
 # ===================================================
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--im_name", type=str, default="")
-args = parser.parse_args()
-
 def copy_files(folders_arr, col_, output_subdir):
     for j, folder_ in enumerate(folders_arr):
         cur_f = f"{runs_dir}/{folder_}"
@@ -80,11 +76,11 @@ def plot_matrix_svg(svgs_path, rows, cols, resize_obj, output_dir, output_name):
     if os.path.exists(params_path):
         params = np.load(params_path, allow_pickle=True)[()]
     plt.figure(figsize=(len(cols) * 2, len(rows) * 2))
-    for i, row_ in enumerate(rows):
-        for j, col_ in enumerate(cols):
+    for j, col_ in enumerate(cols):
+        for i, row_ in enumerate(rows):
             cur_svg = f"{svgs_path}/row{row_}_col{col_}.svg"
             im = scripts_utils.read_svg(cur_svg, resize_obj=resize_obj, params=params, multiply=False, device=device)
-            plt.subplot(len(rows),len(cols), i + 1 + len(cols) * j)
+            plt.subplot(len(rows),len(cols), j + 1 + len(cols) * i)
             plt.imshow(im)
             plt.axis("off")
     plt.savefig(f"{output_dir}/{output_name}_matrix.png")
@@ -93,11 +89,11 @@ def plot_matrix_svg(svgs_path, rows, cols, resize_obj, output_dir, output_name):
 
 def plot_matrix_raster(im_path, rows, cols, output_dir, output_name):
     plt.figure(figsize=(len(cols) * 2, len(rows) * 2))
-    for i, row_ in enumerate(rows):
-        for j, col_ in enumerate(cols):
+    for j, col_ in enumerate(cols):
+        for i, row_ in enumerate(rows):
             cur_p = f"{im_path}/row{row_}_col{col_}.png"
             im = imageio.imread(cur_p)
-            plt.subplot(len(rows),len(cols), i + 1 + len(cols) * j)
+            plt.subplot(len(rows),len(cols), j + 1 + len(cols) * i)
             plt.imshow(im)
             plt.axis("off")
     plt.savefig(f"{output_dir}/{output_name}_matrix.png")
@@ -132,37 +128,47 @@ def combine_matrix(output_dir, rows, cols, output_size = 448):
             imageio.imsave(f"{output_dir}/combined_matrix/row{row_}_col{col_}.png", raster_b)
 
 
-output_dir = f"./results_sketches/{args.im_name}"
-if not os.path.exists(f"{output_dir}/object_matrix"):
-    os.mkdir(f"{output_dir}/object_matrix")
-if not os.path.exists(f"{output_dir}/background_matrix"):
-    os.mkdir(f"{output_dir}/background_matrix")
-if not os.path.exists(f"{output_dir}/combined_matrix"):
-    os.mkdir(f"{output_dir}/combined_matrix")
-if not os.path.exists(f"{output_dir}/all_sketches"):
-    os.mkdir(f"{output_dir}/all_sketches")
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--im_name", type=str, default="")
+    args = parser.parse_args()
+
+    output_dir = f"./results_sketches/{args.im_name}"
+    if not os.path.exists(f"{output_dir}/object_matrix"):
+        os.mkdir(f"{output_dir}/object_matrix")
+    if not os.path.exists(f"{output_dir}/background_matrix"):
+        os.mkdir(f"{output_dir}/background_matrix")
+    if not os.path.exists(f"{output_dir}/combined_matrix"):
+        os.mkdir(f"{output_dir}/combined_matrix")
+    if not os.path.exists(f"{output_dir}/all_sketches"):
+        os.mkdir(f"{output_dir}/all_sketches")
 
 
-device = torch.device("cuda:0" if (
-            torch.cuda.is_available() and torch.cuda.device_count() > 0) else "cpu")
-runs_dir = f"{output_dir}/runs"
-gen_matrix(output_dir, args.im_name)
-            
-rows = range(9)
-cols = [0,1,2,3]
-# cols = [0,1,3]
+    device = torch.device("cuda:0" if (
+                torch.cuda.is_available() and torch.cuda.device_count() > 0) else "cpu")
+    runs_dir = f"{output_dir}/runs"
+    gen_matrix(output_dir, args.im_name)
+                
+    cols = [0,1,2,3]
+    rows = range(9)
 
-svg_path = f"{output_dir}/background_matrix"
-resize_obj=0
-rows = range(9)[::2][:-1]
-plot_matrix_svg(svg_path, rows, cols, resize_obj, output_dir, "background")
+    svg_path = f"{output_dir}/background_matrix"
+    resize_obj=0
+    plot_matrix_svg(svg_path, range(9), cols, resize_obj, output_dir, "background_all")
+    plot_matrix_svg(svg_path, range(9)[::2][:-1], cols, resize_obj, output_dir, "background_4x4")
 
 
-svg_path = f"{output_dir}/object_matrix"
-resize_obj=1
-rows = range(9)[::2][:-1]
-plot_matrix_svg(svg_path, rows, cols, resize_obj, output_dir, "obj")
+    svg_path = f"{output_dir}/object_matrix"
+    resize_obj=1
+    plot_matrix_svg(svg_path, range(9), cols, resize_obj, output_dir, "obj_all")
+    plot_matrix_svg(svg_path, range(9)[::2][:-1], cols, resize_obj, output_dir, "obj_4x4")
 
-combine_matrix(output_dir, rows, cols)
+    combine_matrix(output_dir, rows, cols)
 
-plot_matrix_raster(f"{output_dir}/combined_matrix", rows, cols, output_dir, "combined")
+    plot_matrix_raster(f"{output_dir}/combined_matrix", range(9)[::2][:-1], cols, output_dir, "combined_4x4")
+    plot_matrix_raster(f"{output_dir}/combined_matrix", rows, cols, output_dir, "combined_all")
+
+
+

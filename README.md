@@ -112,4 +112,12 @@ If you want to run our method for spesific fidelity or simplicity levels, you ca
     Where <step_size> is the parameter to sample the function f_k (as described in the paper). You can find the spesific parameters under   "scripts/run_all.py" 
 
 
+### Tips for efficiency
 
+* Note that the provided scripts assume only one GPU, so all processes run sequentially. <br>
+If you have multiple GPUs, you can modify the scripts to run Background and Foreground sketches in parallel.
+You can split the logic in "scripts/run_all.py" into two.
+
+* Additionally, you can use less steps in "scripts/generate_fidelity_levels.py" - currently num_iter is set to 1500, however, after ~500 steps you can already get quite a reasonable scale.
+
+* You can additinally generate less levels along the simplicity axis, by modifying the "num_ratios" parameter in "get_ratios_dict".

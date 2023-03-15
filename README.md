@@ -29,6 +29,12 @@ cd /home
 git https://github.com/yael-vinker/SceneSketch.git
 cd SceneSketch/
 ```
+
+Next, download the U2Net weights:
+```bash
+wget https://huggingface.co/akhaliq/CLIPasso/resolve/main/u2net.pth --output-document=U2Net_/saved_models/u2net.pth
+```
+
 Now you are all set and ready to move to the next stage (Run Demo).
 
 

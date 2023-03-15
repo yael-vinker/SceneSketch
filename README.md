@@ -79,6 +79,16 @@ python scripts/run_all.py --im_name "ballerina"
 ```
 The resulting sketches will be saved to the "results_sketches/<im_name>" folder, in SVG and png format.
 
+If you want to run foreground and background sketching in parallel (in case you have more than a single GPU, this is recommended), you can simply run them in separate using:
+```bash
+python scripts/run_background.py --im_name "ballerina"
+```
+and:
+```bash
+python scripts/run_foreground.py --im_name "ballerina"
+```
+
+
 
 Once the script have finished running (this can take up to few hours, for faster version and layer selection see "Play with the scripts" below), you can visualize the results using:
 ```bash

@@ -89,7 +89,7 @@ def get_ratios_dict(path_to_initial_sketches, folder_name_l, layer, im_name, obj
     print(f"layer {layer} r_1_k {r_1_k} \n new {ratios_str} \n x {xs_layer_l_str}\n")
     return ratios_str
 
-def read_svg(path_svg, multiply=False, resize_obj=False, params=None, opacity=1, device=None):
+def read_svg(path_svg, multiply=0, resize_obj=False, params=None, opacity=1, device=None):
     if device is None:
         print("setting device")
         device = torch.device("cuda" if (
@@ -115,7 +115,7 @@ def read_svg(path_svg, multiply=False, resize_obj=False, params=None, opacity=1,
         canvas_height *= 2
         for path in shapes:
             path.points *= 2
-            path.stroke_width *= 2
+            path.stroke_width *= multiply
     _render = pydiffvg.RenderFunction.apply
     scene_args = pydiffvg.RenderFunction.serialize_scene(
         canvas_width, canvas_height, shapes, shape_groups)

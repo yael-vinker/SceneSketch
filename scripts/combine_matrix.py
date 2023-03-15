@@ -137,16 +137,16 @@ def combine_matrix(output_dir, rows, cols, output_size = 448):
         for j, col_ in enumerate(cols):
             cur_svg_o = f"{output_dir}/object_matrix/row{row_}_col{col_}.svg"
             print(cur_svg_o)
-            raster_o = scripts_utils.read_svg(cur_svg_o, resize_obj=1, params=params, multiply=True, device=device)
+            raster_o = scripts_utils.read_svg(cur_svg_o, resize_obj=1, params=params, multiply=1.8, device=device)
             imageio.imsave(f"{output_dir}/object_matrix/row{row_}_col{col_}.png", raster_o)
 
             cur_svg_b = f"{output_dir}/background_matrix/row{row_}_col{col_}.svg"
             print(cur_svg_b)
-            raster_b = scripts_utils.read_svg(cur_svg_b, resize_obj=0, params=params, multiply=True, device=device)
+            raster_b = scripts_utils.read_svg(cur_svg_b, resize_obj=0, params=params, multiply=1.8, device=device)
             imageio.imsave(f"{output_dir}/background_matrix/row{row_}_col{col_}.png", raster_b)
 
             raster_b[mask == 1] = 1
-            raster_b[raster_o == 0] = 0
+            raster_b[raster_o != 1] = raster_o[raster_o != 1]
             imageio.imsave(f"{output_dir}/combined_matrix/row{row_}_col{col_}.png", raster_b)
 
 

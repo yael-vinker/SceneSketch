@@ -91,8 +91,10 @@ target = args.target_file
 assert os.path.isfile(target), f"{target} does not exists!"
 
 if not os.path.isfile(f"{abs_path}/U2Net_/saved_models/u2net.pth"):
-    sp.run(["gdown", "https://drive.google.com/uc?id=1ao1ovG1Qtx4b7EoskHXmi2E9rp5CHLcZ",
-        "-O", "U2Net_/saved_models/"])
+    sp.run(["wget", "https://huggingface.co/akhaliq/CLIPasso/resolve/main/u2net.pth",
+     "--output-document=U2Net_/saved_models/"])
+    # sp.run(["gdown", "https://drive.google.com/uc?id=1ao1ovG1Qtx4b7EoskHXmi2E9rp5CHLcZ",
+    #     "-O", "U2Net_/saved_models/"])
 
 output_dir = f"{args.output_pref}/{args.test_name}/"
 if not os.path.exists(output_dir):

@@ -32,7 +32,7 @@ args = parser.parse_args()
 path_to_files = "./target_images"  # where the input images are located
 output_pref = f"./results_sketches/{args.im_name}/runs" # path to output the results
 path_res_pref = f"./results_sketches/{args.im_name}/runs" # path to take semantic trained models from
-filename = f"{args.im_name}_mask.png" if args.object_or_background == "background" else f"{args.im_name}.jpg"
+filename = f"{args.im_name}_mask.png" if args.object_or_background == "background" else f"{args.im_name}.png"
 folder_ = "background" if args.object_or_background == "background" else "scene"
 file_ = f"{path_to_files}/{folder_}/{filename}"
 
@@ -48,7 +48,7 @@ if args.object_or_background == "object":
 # =========== real ============
 # =============================
 num_iter = 401
-num_sketches = 1
+num_sketches = 2
 # =============================
 
 
@@ -83,45 +83,46 @@ for i, ratio in enumerate(ratios):
     start = time.time()
     test_name_pref = f"l{args.layer_opt}_{os.path.splitext(os.path.basename(file_))[0]}_{args.min_div}"
     test_name = f"ratio{ratio}_{test_name_pref}"
-    print("**** test_name ****")
-    print(test_name)
-    if i == 0:
-        # in this case we use the semantic mlp (first row) and we don't want its optimizer
-        mlp_width_weights_path = "none"
-        load_points_opt_weights = 0
-    else:
-        mlp_width_weights_path = f"{output_pref}/ratio{ratios[i-1]}_{test_name_pref}/width_mlp.pt"
-        print("**** mlp_width_weights_path ****")
-        print(mlp_width_weights_path)
-        assert os.path.exists(mlp_width_weights_path)
+    if not os.path.exists(f"{output_pref}/{test_name}/width_mlp.pt"):
+        print("**** test_name ****")
+        print(test_name)
+        if i == 0:
+            # in this case we use the semantic mlp (first row) and we don't want its optimizer
+            mlp_width_weights_path = "none"
+            load_points_opt_weights = 0
+        else:
+            mlp_width_weights_path = f"{output_pref}/ratio{ratios[i-1]}_{test_name_pref}/width_mlp.pt"
+            print("**** mlp_width_weights_path ****")
+            print(mlp_width_weights_path)
+            assert os.path.exists(mlp_width_weights_path)
 
-        mlp_points_weights_path = f"{output_pref}/ratio{ratios[i-1]}_{test_name_pref}/points_mlp.pt"
-        print("**** mlp_points_weights_path ****")
-        print(mlp_points_weights_path)
-        assert os.path.exists(mlp_points_weights_path)
+            mlp_points_weights_path = f"{output_pref}/ratio{ratios[i-1]}_{test_name_pref}/points_mlp.pt"
+            print("**** mlp_points_weights_path ****")
+            print(mlp_points_weights_path)
+            assert os.path.exists(mlp_points_weights_path)
 
-        load_points_opt_weights = 1
+            load_points_opt_weights = 1
 
-    sp.run(["python", 
-            "scripts/run_sketch.py", 
-            "--target_file", file_,
-            "--output_pref", output_pref,
-            "--num_strokes", str(num_strokes),
-            "--num_iter", str(num_iter),
-            "--test_name", test_name,
-            "--num_sketches", str(num_sketches),
-            "--clip_conv_layer_weights", clip_conv_layer_weights,
-            "--width_optim", str(1),
-            "--width_loss_weight", str(1),
-            "--path_svg", path_svg,
-            "--mlp_width_weights_path", mlp_width_weights_path,
-            "--mlp_points_weights_path", mlp_points_weights_path,
-            "--gradnorm", str(gradnorm),
-            "--load_points_opt_weights", str(load_points_opt_weights),
-            "--width_weights_lst", ratios_str,
-            "--ratio_loss", str(ratio),
-            "--mask_object", str(mask_object),
-            "--resize_obj", str(args.resize_obj)])
-    print("=" * 50)
-    print("time per w: ", time.time() - start)
-    print("=" * 50)
+        sp.run(["python", 
+                "scripts/run_sketch.py", 
+                "--target_file", file_,
+                "--output_pref", output_pref,
+                "--num_strokes", str(num_strokes),
+                "--num_iter", str(num_iter),
+                "--test_name", test_name,
+                "--num_sketches", str(num_sketches),
+                "--clip_conv_layer_weights", clip_conv_layer_weights,
+                "--width_optim", str(1),
+                "--width_loss_weight", str(1),
+                "--path_svg", path_svg,
+                "--mlp_width_weights_path", mlp_width_weights_path,
+                "--mlp_points_weights_path", mlp_points_weights_path,
+                "--gradnorm", str(gradnorm),
+                "--load_points_opt_weights", str(load_points_opt_weights),
+                "--width_weights_lst", ratios_str,
+                "--ratio_loss", str(ratio),
+                "--mask_object", str(mask_object),
+                "--resize_obj", str(args.resize_obj)])
+        print("=" * 50)
+        print("time per w: ", time.time() - start)
+        print("=" * 50)

@@ -79,7 +79,7 @@ parser.add_argument("--resize_obj", type=int, default=0)
 parser.add_argument('-colab', action='store_true')
 parser.add_argument('-cpu', action='store_true')
 
-parser.add_argument("--eval_interval", type=int, default=20)
+parser.add_argument("--eval_interval", type=int, default=100)
 parser.add_argument("--min_eval_iter", type=int, default=100)
 
 args = parser.parse_args()

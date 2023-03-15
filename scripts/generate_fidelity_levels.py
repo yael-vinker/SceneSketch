@@ -22,6 +22,7 @@ parser.add_argument("--im_name", type=str, default="")
 parser.add_argument("--layer_opt", type=int, default=4)
 parser.add_argument("--object_or_background", type=str, default="background")
 parser.add_argument("--resize_obj", type=int, default=0)
+parser.add_argument("--num_iter", type=int, default=1501)
 args = parser.parse_args()
 
 
@@ -46,7 +47,7 @@ if args.object_or_background == "object":
 # ===================
 num_strokes = 64
 num_sketches = 2
-num_iter = 1501
+num_iter = args.num_iter
 # ===================
 
 # set the weights for each layer

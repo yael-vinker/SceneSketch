@@ -19,14 +19,14 @@ We then combine the two matrices into one. we define a sketch as a set of Bézie
 You can simply pull the docker image from docker hub, containing all the required libraries and packages:
 ```bash
 docker pull yaelvinker/clipascene
-docker run --name clipascene -p 8888:8888 --gpus all -it yaelvinker/clipasso_docker /bin/bash
+docker run --name clipascene -p 8888:8888 --gpus all -it yaelvinker/clipascene /bin/bash
 ```
 Now you should have a running container.
 Inside the container, go to /home directory, and clone the repository:
 
 ```bash
 cd /home
-git https://github.com/yael-vinker/SceneSketch.git
+git clone https://github.com/yael-vinker/SceneSketch.git
 cd SceneSketch/
 ```
 

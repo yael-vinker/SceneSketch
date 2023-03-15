@@ -26,7 +26,7 @@ Inside the container, go to /home directory, and clone the repository:
 
 ```bash
 cd /home
-git https://github.com/yael-vinker/SceneSketch.git
+git clone https://github.com/yael-vinker/SceneSketch.git
 cd SceneSketch/
 ```
 

@@ -121,7 +121,13 @@ def main(args):
         loss.backward()
         optimizer.step_()
 
-        if epoch % args.eval_interval == 0 and epoch > args.min_eval_iter:
+        if epoch % args.save_interval == 0:
+            utils.plot_batch(inputs, sketches, f"{args.output_dir}/jpg_logs", counter,
+                             use_wandb=args.use_wandb, title=f"iter{epoch}.jpg")
+            renderer.save_svg(
+                f"{args.output_dir}/svg_logs", f"svg_iter{epoch}")
+
+        if epoch % args.eval_interval == 0 and epoch >= args.min_eval_iter:
             if args.width_optim:
                 if args.mlp_train and args.optimize_points:
                     torch.save({

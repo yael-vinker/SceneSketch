@@ -34,22 +34,29 @@ Next, download the U2Net weights:
 ```bash
 wget https://huggingface.co/akhaliq/CLIPasso/resolve/main/u2net.pth --output-document=U2Net_/saved_models/u2net.pth
 ```
+and the LAMA model:
+```bash
+cd lama/
+curl -L $(yadisk-direct https://disk.yandex.ru/d/ouP6l8VJ0HpMZg) -o big-lama.zip
+unzip big-lama.zip
+```
 
 Now you are all set and ready to move to the next stage (Run Demo).
 
 
 ## Run Demo
 ### Image Preprocessing
-The input scene images should be provided in __png format__, and should be located under "./target_images". <br>
+The input scene images should be provided in __png format__, and should be located under "./target_images/scene". <br>
 Please provide a __square__ image with a reasonable size (maximum ~500px). <br>
 For the best performances, we split the scene image into foreground and background, and sketch each seperately. <br>
 If you wish to apply our method without the split, you can move on to the next stage (Start Sketching). <br>
 Otherwise, run:
 ```bash
-python preprocess_images.py --im_name <im_name>
+python preprocess_images.py
 ```
-Where <im_name> can be for example "ballerina.png". <br>
+<br>
 This script will:
+* Apply our preprocess for all scene images under "./target_images/scene".
 * Generate a mask image using U2Net (saved under "target_images/scene/<im_name>_mask.png")
 * Generate the inpainted background image guided by the mask, using LAMA (saved under "target_images/background/<im_name>_mask.png") <br>
 

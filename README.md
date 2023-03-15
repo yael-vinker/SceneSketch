@@ -55,10 +55,15 @@ Otherwise, run:
 python preprocess_images.py
 ```
 <br>
-This script will:
+<br>
+
+__This script will__: 
+<br>
 * Apply our preprocess for all scene images under "./target_images/scene".
-* Generate a mask image using U2Net (saved under "target_images/scene/<im_name>_mask.png")
-* Generate the inpainted background image guided by the mask, using LAMA (saved under "target_images/background/<im_name>_mask.png") <br>
+
+* Generate a mask image using U2Net (saved under "target_images/scene/<im_name>_mask.png") 
+
+* Generate the inpainted background image guided by the mask, using LAMA (saved under "target_images/background/<im_name>_mask.png") 
 
 Note that you can also directly use [this LAMA demo](https://huggingface.co/spaces/akhaliq/lama) with the "U2Net" option, and just locate the resulting inpainted background under "target_images/background/<im_name>_mask.png".
 

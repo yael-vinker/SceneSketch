@@ -1,5 +1,5 @@
 __pycache__/
 output_sketches/
-U2Net_/
+U2Net_/saved_models/u2net.pth
 results_sketches/
 notebooks/

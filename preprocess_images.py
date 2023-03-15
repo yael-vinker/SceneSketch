@@ -27,6 +27,7 @@ import logging
 import os
 import sys
 import traceback
+import shutil
 
 from lama.saicinpainting.evaluation.utils import move_to_device
 from lama.saicinpainting.evaluation.refinement import refine_predict
@@ -53,7 +54,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def get_U2Net_mask(top_path, im_name, device, use_gpu):
-    im = Image.open(f"{top_path}/scene/{im_name}")
+    im = Image.open(f"{top_path}/{im_name}")
     w, h = im.size[0], im.size[1]
 
     test_salobj_dataset = u2net_utils.SalObjDataset(imgs_list=[im],
@@ -163,30 +164,58 @@ def apply_inpaint(predict_config, device):
         sys.exit(1)
 
 
+def standarlized_images(top_path, im_name):
+    if os.path.splitext(im_name)[1] in [".png", ".jpg", ".jpeg"]:
+        im = np.array(Image.open(f"{top_path}/{im_name}"))
+        h,w = im.shape[0], im.shape[1]
+        if h != w:
+            print(f"!! Note - {im_name} size is {h}x{w}, the image is not square, image will be resized !!")
+        max_size = max(h,w)
+        if max_size > 512:
+            print(f"!! Note - {im_name} size is {h}x{w}, which is too large, image will be resized to 512x512 !!")
+            im = Image.open(f"{top_path}/{im_name}").convert("RGB").resize((512,512))
+            im.save(f"{top_path}/{os.path.splitext(im_name)[0]}.png")
+        # replace to png for LAMA
+        elif os.path.splitext(im_name)[1] in [".jpg", ".jpeg"]:
+            print(f"!! Note - {im_name} is not png, will be replaced to png !!")
+            input_path = f"{args.top_path}/{im_name}"
+            copy_path = f"{args.top_path}/{os.path.splitext(im_name)[0]}.png"
+            shutil.copyfile(input_path, copy_path) 
+        
 if __name__ == "__main__":
+    # TODO - aplly this on the entire folder without image name
     parser = argparse.ArgumentParser()
     parser.add_argument("--run_u2net", type=int, default=1)
-    parser.add_argument("--im_name", type=str, default="man_flowers.png")
-    parser.add_argument("--top_path", type=str, default="./target_images")
+    parser.add_argument("--top_path", type=str, default="./target_images/scene")
     parser.add_argument("--use_gpu", type=int, default=1)
     args = parser.parse_args()
 
     device = torch.device("cuda" if (
             torch.cuda.is_available() and torch.cuda.device_count() > 0) else "cpu")
-
+    
+    for im_name in os.listdir(args.top_path):
+        standarlized_images(args.top_path, im_name)
+        
     if args.run_u2net:
         print("Producing mask using U2Net....")
-        mask = get_U2Net_mask(args.top_path, args.im_name, device, args.use_gpu)
-        output_path = f"{args.top_path}/scene/{os.path.splitext(args.im_name)[0]}_mask.png"
-        imageio.imsave(output_path, mask)
-        print(f"Mask generated successfully! and saved to {output_path}")
+        for im_name in os.listdir(args.top_path):
+            if os.path.splitext(im_name)[1] in [".png"] and "_mask" not in os.path.splitext(im_name)[0]:
+                output_path = f"{args.top_path}/{os.path.splitext(im_name)[0]}_mask.png"
+                if os.path.exists(output_path):
+                    print(f"{output_path} already exists!")
+                else:
+                    mask = get_U2Net_mask(args.top_path, im_name, device, args.use_gpu)
+                    imageio.imsave(output_path, mask)
+                    print(f"Mask generated successfully! and saved to {output_path}")
+            
+            
 
     # running LAMA
     print("=" * 50)
     print("Applying LAMA inpainting....")
     conf = OmegaConf.load('lama/configs/prediction/default.yaml')     
     conf.model.path = "lama/big-lama"
-    conf.indir = "./target_images/scene/"
+    conf.indir = args.top_path
     conf.outdir = "./target_images/background/"
     apply_inpaint(conf, device)
         

@@ -112,7 +112,7 @@ If you want to run our method for spesific fidelity or simplicity levels, you ca
     Where <step_size> is the parameter to sample the function f_k (as described in the paper). You can find the spesific parameters under   "scripts/run_all.py" 
 
 
-### Tips for efficiency
+## Tips for efficiency
 
 * Note that the provided scripts assume only one GPU, so all processes run sequentially. <br>
 If you have multiple GPUs, you can run Background and Foreground sketches in parallel. (use scripts/run_background.py, scripts/run_foreground.py)

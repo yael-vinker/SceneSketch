@@ -116,6 +116,7 @@ def log_sketch_summary_final(path_svg, use_wandb, device, epoch, loss, title):
 
 
 def log_best_normalised_sketch(configs_to_save, output_dir, use_wandb, device, eval_interval, min_eval_iter):
+    np.save(f"{output_dir}/config.npy", configs_to_save)
     losses_eval = {}
     for k in configs_to_save.keys():
         if "_original_eval" in k and "normalization" not in k:

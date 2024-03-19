@@ -96,8 +96,6 @@ def get_U2Net_mask(top_path, im_name, device, use_gpu):
     mask[mask > max_val / 2] = 255
     mask = mask.astype(np.uint8)
     mask = resize(mask, (h, w), anti_aliasing=False, order=0)
-    mask[mask < 0.5] = 0
-    mask[mask >= 0.5] = 1
     
     return mask
 

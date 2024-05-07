@@ -98,7 +98,7 @@ def main(args):
     if args.display:
         epoch_range = range(args.num_iter)
     else:
-        epoch_range = tqdm(range(args.num_iter))
+        epoch_range = tqdm(range(args.num_iter), desc=args.wandb_name.ljust(40), position = args.process_id)
 
     if args.switch_loss:
         # start with width optim and than switch every switch_loss iterations

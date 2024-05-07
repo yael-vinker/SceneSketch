@@ -81,6 +81,8 @@ parser.add_argument('-cpu', action='store_true')
 
 parser.add_argument("--eval_interval", type=int, default=100)
 parser.add_argument("--min_eval_iter", type=int, default=100)
+parser.add_argument("--gpu_id", type=int, default=0)
+parser.add_argument("--process_id", type=int, default=0)
 
 args = parser.parse_args()
 
@@ -162,7 +164,9 @@ def run(seed, wandb_name, output_dir, losses_best_normalised, losses_eval_sum):
                             "--ratio_loss", str(args.ratio_loss),
                             "--resize_obj", str(args.resize_obj),
                             "--eval_interval", str(args.eval_interval),
-                            "--min_eval_iter", str(args.min_eval_iter)])
+                            "--min_eval_iter", str(args.min_eval_iter),
+                            "--process_id",str(args.process_id),
+                            "--gpu_id",str(args.gpu_id)])
     if exit_code.returncode:
         sys.exit(1)
 

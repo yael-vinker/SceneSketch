@@ -45,6 +45,9 @@ parser.add_argument("--mask_object_attention", type=int, default=0,
 parser.add_argument("--clip_fc_loss_weight", type=str, default="0")
 parser.add_argument("--clip_conv_layer_weights", type=str, default="0,0,1.0,1.0,0")
 parser.add_argument("--clip_conv_loss_type", type=str, default="L2")
+parser.add_argument("--clip_text_guide_loss_type", type=str, default="Cos")
+parser.add_argument("--clip_text_fc_loss_type", type=str, default="L2")
+parser.add_argument("--clip_text_layer_loss_type", type=str, default="Cos")
 
 parser.add_argument("--clip_model_name", type=str, default="ViT-B/32")
 parser.add_argument("--loss_mask", type=str, default="none")
@@ -52,6 +55,10 @@ parser.add_argument("--mlp_train", type=int, default=1)
 parser.add_argument("--lr", type=float, default=1e-4)
 parser.add_argument("--clip_mask_loss", type=int, default=0)
 parser.add_argument("--clip_conv_loss", type=int, default=1)
+parser.add_argument("--clip_text_guide", type=int, default=0)
+parser.add_argument("--clip_text_fc", type=int, default=0)
+parser.add_argument("--clip_text_layer", type=int, default=0)
+
 parser.add_argument("--dilated_mask", type=int, default=0)
 parser.add_argument("--mask_attention", type=int, default=0)
 
@@ -81,6 +88,8 @@ parser.add_argument('-cpu', action='store_true')
 
 parser.add_argument("--eval_interval", type=int, default=100)
 parser.add_argument("--min_eval_iter", type=int, default=100)
+parser.add_argument("--gpu_id", type=int, default=0)
+parser.add_argument("--process_id", type=int, default=0)
 
 args = parser.parse_args()
 
@@ -145,9 +154,15 @@ def run(seed, wandb_name, output_dir, losses_best_normalised, losses_eval_sum):
                             "--clip_mask_loss", str(args.clip_mask_loss),
                             "--dilated_mask", str(args.dilated_mask),
                             "--clip_conv_loss_type", str(args.clip_conv_loss_type),
+                            "--clip_text_guide_loss_type", str(args.clip_text_guide_loss_type),
+                            "--clip_text_fc_loss_type", str(args.clip_text_fc_loss_type),
+                            "--clip_text_layer_loss_type", str(args.clip_text_layer_loss_type),
                             "--mask_cls", args.mask_cls,
                             "--width_optim", str(args.width_optim),
                             "--width_loss_weight", str(args.width_loss_weight),
+                            "--clip_text_guide", str(args.clip_text_guide),
+                            "--clip_text_fc", str(args.clip_text_fc),
+                            "--clip_text_layer", str(args.clip_text_layer),
                             "--mask_attention", str(args.mask_attention),
                             "--optimize_points", str(args.optimize_points),
                             "--width_loss_type", args.width_loss_type,
@@ -162,7 +177,9 @@ def run(seed, wandb_name, output_dir, losses_best_normalised, losses_eval_sum):
                             "--ratio_loss", str(args.ratio_loss),
                             "--resize_obj", str(args.resize_obj),
                             "--eval_interval", str(args.eval_interval),
-                            "--min_eval_iter", str(args.min_eval_iter)])
+                            "--min_eval_iter", str(args.min_eval_iter),
+                            "--process_id",str(args.process_id),
+                            "--gpu_id",str(args.gpu_id)])
     if exit_code.returncode:
         sys.exit(1)
 

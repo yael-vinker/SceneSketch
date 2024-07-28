@@ -67,6 +67,8 @@ def parse_arguments():
     parser.add_argument("--dilated_mask", type=int, default=0)
     parser.add_argument("--mask_cls", type=str, default="none", help="can be none|only_cls|cls_out")
     parser.add_argument("--mask_attention", type=int, default=0, help="mask during initialisation")
+    parser.add_argument("--gpu_id", type=int, default=None)
+    parser.add_argument("--process_id", type=int, default=0)
 
 
     # =================================
@@ -131,7 +133,12 @@ def parse_arguments():
                         type=str, default="0,0,1.0,1.0,0")
     parser.add_argument("--clip_model_name", type=str, default="RN101")
     parser.add_argument("--clip_fc_loss_weight", type=float, default=0.1)
-    parser.add_argument("--clip_text_guide", type=float, default=0)
+    parser.add_argument("--clip_text_guide", type=int, default=0)
+    parser.add_argument("--clip_text_fc", type=int, default=0)
+    parser.add_argument("--clip_text_layer", type=int, default=0)
+    parser.add_argument("--clip_text_guide_loss_type", type=str, default="Cos")
+    parser.add_argument("--clip_text_fc_loss_type", type=str, default="L2")
+    parser.add_argument("--clip_text_layer_loss_type", type=str, default="L2")
     parser.add_argument("--text_target", type=str, default="none")
     
 
@@ -162,8 +169,9 @@ def parse_arguments():
                    config=args, name=args.wandb_name, id=wandb.util.generate_id())
 
     if args.use_gpu:
-        args.device = torch.device("cuda" if (
+        args.device = torch.device(f"cuda:{args.gpu_id}" if (
             torch.cuda.is_available() and torch.cuda.device_count() > 0) else "cpu")
+        print(f"Using cuda: {args.gpu_id}")
     else:
         args.device = torch.device("cpu")
     pydiffvg.set_use_gpu(torch.cuda.is_available() and args.use_gpu)
